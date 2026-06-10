@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        TARGET_URL = "http://host.docker.internal:9090/WebGoat"
-        ZAP_PORT   = "8090"
+        TARGET_URL        = "http://host.docker.internal:9090/WebGoat"
+        ZAP_PORT          = "8090"
         CONTAINER_WEBGOAT = "webgoat"
         CONTAINER_ZAP     = "zap"
     }
@@ -60,18 +60,16 @@ pipeline {
                 sh "docker stop ${CONTAINER_ZAP} || true"
                 sh "docker rm   ${CONTAINER_ZAP} || true"
                 sh """
-                    docker run -d \
+                    docker run --rm \
                         --name ${CONTAINER_ZAP} \
                         -u root \
-                        -v \$(pwd):/zap/wrk \
+                        -v \${WORKSPACE}:/zap/wrk:rw \
                         ghcr.io/zaproxy/zaproxy:stable \
                         zap-baseline.py \
                             -t ${TARGET_URL} \
                             -r zap-report.html \
                             -I || true
                 """
-                sh 'sleep 60'
-                sh 'cp /var/jenkins_home/workspace/webgoat-devsecops/zap-report.html . || true'
             }
             post {
                 always {
