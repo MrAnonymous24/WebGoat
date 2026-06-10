@@ -3,9 +3,9 @@ pipeline {
 
     environment {
         TARGET_URL        = "http://host.docker.internal:9090/WebGoat"
-        ZAP_PORT          = "8090"
         CONTAINER_WEBGOAT = "webgoat"
         CONTAINER_ZAP     = "zap"
+        ZAP_WORKSPACE     = "/var/lib/docker/volumes/jenkins_home/_data/workspace/webgoat"
     }
 
     stages {
@@ -59,27 +59,17 @@ pipeline {
             steps {
                 sh "docker stop ${CONTAINER_ZAP} || true"
                 sh "docker rm   ${CONTAINER_ZAP} || true"
-                sh "docker volume rm zap-results || true"
-                sh "docker volume create zap-results"
                 sh """
                     docker run --rm \
                         --name ${CONTAINER_ZAP} \
                         -u root \
-                        -v zap-results:/zap/wrk:rw \
+                        -v ${ZAP_WORKSPACE}:/zap/wrk:rw \
                         ghcr.io/zaproxy/zaproxy:stable \
                         zap-baseline.py \
                             -t ${TARGET_URL} \
                             -r zap-report.html \
                             -I || true
                 """
-                sh """
-                    docker run --rm \
-                        -v zap-results:/data \
-                        -v \${WORKSPACE}:/output \
-                        alpine \
-                        cp /data/zap-report.html /output/zap-report.html
-                """
-                sh "docker volume rm zap-results || true"
             }
             post {
                 always {
