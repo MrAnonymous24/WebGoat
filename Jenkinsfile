@@ -59,17 +59,27 @@ pipeline {
             steps {
                 sh "docker stop ${CONTAINER_ZAP} || true"
                 sh "docker rm   ${CONTAINER_ZAP} || true"
+                sh "docker volume rm zap-results || true"
+                sh "docker volume create zap-results"
                 sh """
                     docker run --rm \
                         --name ${CONTAINER_ZAP} \
                         -u root \
-                        -v \${WORKSPACE}:/zap/wrk:rw \
+                        -v zap-results:/zap/wrk:rw \
                         ghcr.io/zaproxy/zaproxy:stable \
                         zap-baseline.py \
                             -t ${TARGET_URL} \
                             -r zap-report.html \
                             -I || true
                 """
+                sh """
+                    docker run --rm \
+                        -v zap-results:/data \
+                        -v \${WORKSPACE}:/output \
+                        alpine \
+                        cp /data/zap-report.html /output/zap-report.html
+                """
+                sh "docker volume rm zap-results || true"
             }
             post {
                 always {
